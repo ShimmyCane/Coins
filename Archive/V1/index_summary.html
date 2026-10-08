@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coin Combos — Code Architecture & Summary</title>
+<style>
+:root{--bg:#0b1329;--card:#111d38;--acc:#38bdf8;--text:#e2e8f0;--mut:#94a3b8;--bd:rgba(255,255,255,.1);--ok:#34d399;--warn:#fbbf24}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 0,#152449,#080d1a);color:var(--text);font:16px/1.6 system-ui,Segoe UI,sans-serif;padding:28px 18px 80px}
+.c{max-width:1100px;margin:0 auto}
+h1{font-size:2.2rem;margin:0 0 4px;background:linear-gradient(135deg,#7dd3fc,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{margin:36px 0 10px;color:#fff;border-bottom:1px solid var(--bd);padding-bottom:6px}
+.sub{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{border-bottom:1px solid var(--bd);padding:7px 8px;text-align:left;vertical-align:top}
+th{color:var(--acc)}
+code{background:#090f1f;border-radius:6px;padding:1px 6px;color:#fbbf24;font-size:.88em}
+.ln{font-family:ui-monospace,Consolas,monospace;color:var(--acc);white-space:nowrap}
+a{color:var(--acc)}
+.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;justify-content:center}
+.box{background:#18274a;border:1px solid rgba(56,189,248,.35);border-radius:12px;padding:10px 14px;min-width:150px;text-align:center}
+.box small{display:block;color:var(--mut)}
+.arr{align-self:center;font-size:1.6rem;color:var(--acc)}
+.core{border-color:var(--ok);box-shadow:0 0 0 2px rgba(52,211,153,.2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+</style>
+</head>
+<body>
+<div class="c">
+<h1>🪙 Coin Combos — Code Summary</h1>
+<p class="sub">Main file: <code>index.html</code> (619 lines, single self-contained file: inline CSS + vanilla JS, no dependencies). Problem class: <b>Coins 1 — make amount A from exactly N US coins</b>. Companion: <a href="schematic.md">schematic.md</a>.</p>
+
+<h2>1. Architecture at a glance</h2>
+<div class="card">
+<div class="flow">
+ <div class="box">User input<small>drag coin · edit number · click button</small></div><div class="arr">→</div>
+ <div class="box">Events<small>pointer handlers + one <code>click</code>/<code>change</code> delegate (<code>data-act</code>)</small></div><div class="arr">→</div>
+ <div class="box core"><b>setCombo()</b> / <b>setProblem()</b><small>single source of truth: <code>S.combo</code>, <code>S.amount</code>, <code>S.count</code></small></div><div class="arr">→</div>
+ <div class="box"><b>renderAll()</b><small>bar · table top · open panels</small></div>
+</div>
+<p class="sub">Math helpers (<code>ways</code>, <code>sols</code>, <code>minMax</code>, <code>cw</code>) are pure functions of the problem and enabled coin set. Every view and strategy panel is just <code>pXxx()</code> returning an HTML string from the current state.</p>
+</div>
+
+<h2>2. Table of contents (by line number)</h2>
+<div class="card"><table>
+<tr><th>Lines</th><th>Section</th><th>What it does</th></tr>
+<tr><td class="ln">7–65</td><td>CSS</td><td>Theme, problem bar, status pills, table-top tray, panels (<code>.panel</code>, <code>.pclose</code>), sort animation (<code>.tt svg.anim .tcoin</code>), buttons, tables, tooltip.</td></tr>
+<tr><td class="ln">67–88</td><td>HTML shell</td><td><code>#bar</code> problem bar, <code>#status</code> pills, <code>#predict</code>, <code>#tt</code> table-top SVG + <code>#tray</code>, <code>#tabs</code> toggle buttons, <code>#panels</code> stacked panels, <code>#tip</code>.</td></tr>
+<tr><td class="ln">91–111</td><td>Constants &amp; state</td><td><code>COINS</code>, <code>KEYS</code>/<code>BK</code>, state object <code>S</code>, limits <code>NM</code>/<code>AM</code>, tiny helpers (<code>val</code>, <code>cnt</code>, <code>ckey</code>, <code>fmt</code>, <code>gcd</code>, <code>ri</code>).</td></tr>
+<tr><td class="ln">113–124</td><td>Graphics</td><td><code>buildDefs()</code> SVG gradient + <code>&lt;symbol&gt;</code> per coin; <code>icon()</code> inline coin icon.</td></tr>
+<tr><td class="ln">126–174</td><td>Math / solver</td><td><code>getW()</code> DP table of ways[count][amount]; <code>minMax()</code> fewest/most coins; <code>sols()</code> enumerates all solutions (pruned, cached); <code>cw()</code> memoised way-count for Peel-off; <code>solved()</code>.</td></tr>
+<tr><td class="ln">176–197</td><td>State changes</td><td><code>setCombo()</code> (clamps, logs history, collects found solutions), <code>setProblem()</code>, <code>surprise()</code>, <code>startPredict()</code>.</td></tr>
+<tr><td class="ln">199–273</td><td>Table top</td><td><code>syncTable()</code> keeps coin objects matching the combo; <code>arrange(g)</code> animated Sort ×5/×10 with labels; <code>renderTable()</code>; tray-drag and coin-drag pointer handlers; double-click removes; dropping outside the table removes.</td></tr>
+<tr><td class="ln">275–301</td><td>Header</td><td><code>renderBar()</code> inputs, coin chips, buttons, status pills, predict card; <code>guess()</code>.</td></tr>
+<tr><td class="ln">302–313</td><td>Panels</td><td><code>TABS</code> groups, <code>PANELS</code> registry, <code>renderRight()</code> (+/− toggles, stacked panels, none overwritten), prediction gate <code>hidden()</code>.</td></tr>
+<tr><td class="ln">315–427</td><td>Views</td><td><code>pTable</code> 315, <code>pEq</code> 323, <code>pGraph</code> 340 (all-solutions graph), <code>pMap</code> 403 + <code>drawMap</code> 415 (canvas heat map, sweeps).</td></tr>
+<tr><td class="ln">428–567</td><td>Strategies &amp; progress</td><td><code>TRADES</code> 428 / <code>pTrade</code> 440; <code>pTwo</code> 450; <code>pPeel</code> 463; <code>pBounds</code> 485; <code>pPairs</code> 514; <code>pBalance</code> 523; <code>pFamily</code> 543; <code>pSols</code> 553; <code>pHist</code> 564.</td></tr>
+<tr><td class="ln">568–617</td><td>Events &amp; boot</td><td>Delegated <code>click</code> switch on <code>data-act</code>; <code>change</code> handler for inputs; <code>renderAll()</code>; initial <code>buildDefs(); renderAll()</code>.</td></tr>
+</table></div>
+
+<h2>3. Key ideas</h2>
+<div class="grid">
+<div class="card"><b>One source of truth</b><br>The combo <code>{P,N,D,Q,H,S}</code> drives everything. Table-top coin objects are re-synced to it (<code>syncTable</code>), so editing a number, trading, or dragging all agree.</div>
+<div class="card"><b>Solver</b><br><code>sols()</code> recurses from the biggest coin down, pruning when remaining cents can't fit remaining coins (between <i>coins × smallest</i> and <i>coins × next-largest</i>). Capped at 3000 results.</div>
+<div class="card"><b>Graph of all solutions</b><br>Two chosen coins are axes. The other two (<code>dep</code>) are solved from the count and value equations, so each dot is a full answer. Extra coin types beyond four are <code>fixed</code>.</div>
+<div class="card"><b>Sort animation</b><br>Coins position with CSS <code>transform</code> (not an SVG attribute), so adding class <code>anim</code> gives a smooth transition; after 750ms the table re-renders in its final layout.</div>
+</div>
+
+<h2>4. Variables you can tweak</h2>
+<div class="card"><table>
+<tr><th>Name</th><th>Where</th><th>What it does</th><th>How to tweak</th></tr>
+<tr><td><code>NM</code>, <code>AM</code></td><td class="ln">103</td><td>Max coin count (200) and max amount in cents (1000) for the DP table and inputs.</td><td>Raise for bigger problems; <code>getW()</code> allocates (NM+1)×(AM+1) numbers, so memory grows fast.</td></tr>
+<tr><td><code>COINS[].v / .d / .t</code></td><td class="ln">91–97</td><td>Value (¢), real diameter (mm), label on the coin.</td><td>Coin art size is <code>R(k)=d×0.85</code> (line 104) in SVG units; change 0.85 to scale all coins.</td></tr>
+<tr><td><code>S.enabled</code></td><td class="ln">100</td><td>Which coin types are on by default (P/N/D/Q).</td><td>Set <code>H:1,S:1</code> to start with halves and dollars.</td></tr>
+<tr><td><code>S.amount</code>, <code>S.count</code></td><td class="ln">100</td><td>Default problem (100¢, 50 coins).</td><td>Edit to start elsewhere.</td></tr>
+<tr><td><code>TRADES</code></td><td class="ln">428</td><td>List of value-preserving exchanges <code>[bigCoin, {smaller coins}]</code>.</td><td>Add rows (e.g. <code>['Q',{D:1,N:3}]</code>) to offer more trades; automatically filtered by enabled coins.</td></tr>
+<tr><td><code>arrange(g)</code> spacing</td><td class="ln">208</td><td><code>dy</code> (stack offset 3–4px), pile width <code>2r+10</code>, band gap.</td><td>Increase <code>dy</code> to see individual coins in a pile more clearly; change the 750ms timeout at the end to match CSS <code>.7s</code> transition.</td></tr>
+<tr><td><code>cap</code> in <code>sols()</code></td><td class="ln">149</td><td>Max solutions enumerated (3000).</td><td>Raise for huge problems; Graph and Solutions use this list.</td></tr>
+<tr><td><code>surprise()</code> ranges</td><td class="ln">190</td><td>Random amount 10–300¢, count 2–60, with 1–40 ways.</td><td>Edit to make easier/harder random problems.</td></tr>
+<tr><td>Map size</td><td class="ln">415</td><td>300¢ × 100 coins, 2×4 px cells on a 600×400 canvas.</td><td>Change loops and cell size together; click mapping in <code>pos()</code> uses 300/100.</td></tr>
+<tr><td>CSS colors</td><td class="ln">7–65</td><td>Hard-coded: felt <code>#1f6b46</code> (in <code>renderTable</code>), navy <code>#2b3a67</code>, ok-green <code>#d9f5dc</code>.</td><td>No CSS variables yet; search and replace to retheme.</td></tr>
+</table></div>
+
+<h2>5. Known limits</h2>
+<div class="card"><ul>
+<li>Touch input and very large sorts are untested.</li>
+<li>No external CSS/JS files: everything is inline in <code>index.html</code>.</li>
+<li>Coins 2–5 tabs (<code>.ptabs</code>) are disabled placeholders.</li>
+<li>With 5–6 coin types the graph holds the extra coins fixed instead of showing every solution.</li>
+</ul></div>
+</div>
+</body>
+</html>

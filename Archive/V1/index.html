@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coins 01 — Coin Combos</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#14161c;color:#222;font:15px/1.4 system-ui,Segoe UI,sans-serif;padding:14px}
+.app{max-width:1280px;margin:0 auto;background:#fbf9f3;border-radius:22px;padding:16px;box-shadow:0 10px 40px #0008}
+h1{font-size:20px;margin:0}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ptabs button{border:0;background:#e8e4d6;border-radius:10px;padding:5px 10px;margin-right:4px;color:#888}
+.ptabs button.on{background:#2b3a67;color:#fff}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#efeadb;border-radius:14px;padding:10px}
+.bar label{font-weight:600;font-size:13px}
+input[type=number]{width:70px;padding:5px;border:1px solid #bbb;border-radius:8px;font-size:15px}
+button{font:inherit;cursor:pointer}
+.btn{border:0;background:#2b3a67;color:#fff;border-radius:10px;padding:7px 12px;min-height:34px}
+.btn.alt{background:#fff;color:#2b3a67;border:1px solid #2b3a67}
+.btn:disabled{opacity:.4;cursor:default}
+.chip{border:2px solid #ccc;background:#fff;border-radius:999px;padding:2px 8px 2px 4px;display:inline-flex;align-items:center;gap:4px;opacity:.5}
+.chip.on{border-color:#2b3a67;opacity:1}
+.status{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.pill{background:#fff;border:1px solid #ddd;border-radius:12px;padding:6px 12px;font-weight:600}
+.pill.ok{background:#d9f5dc;border-color:#58b862}
+.pill.bad{background:#fde6dc;border-color:#e59a77}
+.pill.win{background:#2e9d46;color:#fff;border-color:#2e9d46}
+.card{background:#fff;border:1px solid #e0dccd;border-radius:14px;padding:10px;margin-bottom:8px}
+.main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px}
+@media(max-width:980px){.main{grid-template-columns:1fr}}
+.tt svg.anim .tcoin{transition:transform .7s ease-in-out}
+.tt svg{width:100%;display:block;border-radius:14px;touch-action:none;user-select:none}
+.tray{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.tray-coin{touch-action:none;user-select:none;cursor:grab;background:#efeadb;border-radius:12px;padding:4px 8px;display:flex;align-items:center;gap:6px;font-weight:600}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:8px}
+.tabs .g{font-size:11px;color:#888;text-transform:uppercase;margin:0 2px 0 8px}
+.tabs button{border:0;background:#e8e4d6;border-radius:9px;padding:5px 9px}
+.tabs button.on{background:#2b3a67;color:#fff}
+.panel{position:relative;padding-right:40px}.pclose{position:absolute;top:8px;right:8px;width:28px;height:28px;border:1px solid #bbb;background:#fff;border-radius:8px;font-size:18px;line-height:1}
+.panel h3{margin:0 0 6px;font-size:16px}
+.muted{color:#777;font-size:13px}
+table{border-collapse:collapse;width:100%}
+td,th{padding:4px 6px;text-align:left;border-bottom:1px solid #eee}
+tr.click{cursor:pointer}tr.click:hover{background:#f3f0e4}
+tr.cur{background:#e5ecff}
+.step{display:inline-flex;align-items:center;gap:3px}
+.step button{width:28px;height:28px;border:1px solid #bbb;background:#fff;border-radius:8px}
+.mv{border:1px solid #2b3a67;background:#fff;color:#223;border-radius:10px;padding:4px 8px;margin:3px 3px 3px 0;display:inline-flex;align-items:center;gap:4px}
+.mv:hover{background:#e5ecff}
+.mv:disabled{opacity:.35;cursor:default}
+.mv.dead{opacity:.35;background:#eee;border-color:#aaa}
+.mv.sel{background:#2b3a67;color:#fff}
+.mv small{opacity:.7}
+.eq{font-size:17px;margin:8px 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.eq input{width:56px;text-align:center;font-weight:700}
+.ci{vertical-align:middle}
+.pos{color:#1b7f35}.neg{color:#b4381d}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+select{padding:4px;border-radius:8px;border:1px solid #bbb}
+canvas{width:100%;border-radius:10px;background:#222;cursor:crosshair}
+.prog{height:12px;background:#eee;border-radius:8px;overflow:hidden}
+.prog i{display:block;height:100%;background:#2e9d46}
+.tip{position:fixed;pointer-events:none;background:#000c;color:#fff;border-radius:8px;padding:3px 8px;font-size:12px;display:none}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="defs"></defs></svg>
+<div class="app">
+  <div class="top">
+    <h1>🪙 Coin Combos</h1>
+    <div class="ptabs"><button class="on">Coins 1 · N coins make A</button><button disabled>Coins 2 · soon</button><button disabled>Coins 3 · soon</button></div>
+  </div>
+  <div class="bar" id="bar"></div>
+  <div class="status" id="status"></div>
+  <div id="predict"></div>
+  <div class="main">
+    <div>
+      <div class="card tt"><svg id="tt" viewBox="0 0 700 420"></svg><div class="tray" id="tray"></div></div>
+    </div>
+    <div>
+      <div class="tabs" id="tabs"></div>
+      <div id="panels"></div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const COINS=[
+ {k:'P',name:'Penny',pl:'pennies',v:1,d:19.05,a:'#e3a077',b:'#9a5528',t:'1¢',l:'p'},
+ {k:'N',name:'Nickel',pl:'nickels',v:5,d:21.21,a:'#e4e7ea',b:'#8f969e',t:'5¢',l:'n'},
+ {k:'D',name:'Dime',pl:'dimes',v:10,d:17.91,a:'#e4e7ea',b:'#8f969e',t:'10¢',l:'d'},
+ {k:'Q',name:'Quarter',pl:'quarters',v:25,d:24.26,a:'#e4e7ea',b:'#8f969e',t:'25¢',l:'q'},
+ {k:'H',name:'Half',pl:'halves',v:50,d:30.61,a:'#e4e7ea',b:'#8f969e',t:'50¢',l:'h'},
+ {k:'S',name:'Dollar',pl:'dollars',v:100,d:26.5,a:'#f1d56a',b:'#a4811a',t:'$1',l:'s'}];
+const KEYS=COINS.map(c=>c.k), BK=Object.fromEntries(COINS.map(c=>[c.k,c]));
+const zero=()=>Object.fromEntries(KEYS.map(k=>[k,0]));
+const S={ttH:420,sorted:false,labels:[],open:['table'],amount:100,count:50,enabled:{P:1,N:1,D:1,Q:1,H:0,S:0},combo:zero(),table:[],found:new Set(),
+ hist:[{label:'start',combo:zero()}],peel:[],gx:'D',gy:'Q',pairSel:null,
+ predictOn:false,pred:null,streak:0,reveal:false,uid:0};
+const NM=200, AM=1000;
+const R=k=>BK[k].d*0.85;
+const en=()=>KEYS.filter(k=>S.enabled[k]);
+const val=c=>KEYS.reduce((s,k)=>s+BK[k].v*(c[k]||0),0);
+const cnt=c=>KEYS.reduce((s,k)=>s+(c[k]||0),0);
+const ckey=c=>KEYS.map(k=>c[k]||0).join(',');
+const fmt=c=>c<100&&c>-100?c+'¢':(c<0?'-':'')+'$'+(Math.abs(c)/100).toFixed(2);
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+
+/* ---------- graphics ---------- */
+function buildDefs(){
+ let h='';
+ COINS.forEach(c=>{
+  h+=`<radialGradient id="g-${c.k}" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="${c.a}"/><stop offset="1" stop-color="${c.b}"/></radialGradient>`;
+  const fs=c.t.length>2?.52:.7;
+  h+=`<symbol id="coin-${c.k}" viewBox="-1 -1 2 2"><circle r=".96" fill="url(#g-${c.k})" stroke="#0005" stroke-width=".05"/><circle r=".76" fill="none" stroke="#0003" stroke-width=".04"/><text y=".24" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#0008" font-family="system-ui">${c.t}</text></symbol>`;
+ });
+ $('#defs').innerHTML=h;
+}
+const icon=(k,px=20)=>`<svg class="ci" width="${px}" height="${px}"><use href="#coin-${k}" width="${px}" height="${px}"/></svg>`;
+const letter=k=>`<b style="color:${k==='P'?'#9a5528':k==='N'||k==='D'||k==='Q'?'#4a5560':k==='H'?'#4a5560':'#a4811a'}">${BK[k].l}</b>`;
+
+/* ---------- math ---------- */
+let Wc=null;
+function getW(){
+ const key=en().join('');
+ if(Wc&&Wc.key===key)return Wc;
+ const W=new Float64Array((NM+1)*(AM+1)); W[0]=1;
+ for(const k of en()){const v=BK[k].v;
+  for(let n=1;n<=NM;n++){const r=n*(AM+1),p=(n-1)*(AM+1);
+   for(let a=v;a<=AM;a++)W[r+a]+=W[p+a-v];}}
+ return Wc={key,W};
+}
+const ways=(n,a)=>(n>=0&&n<=NM&&a>=0&&a<=AM)?getW().W[n*(AM+1)+a]:0;
+function minMax(A){
+ const vs=en().map(k=>BK[k].v),mn=Array(A+1).fill(Infinity),mx=Array(A+1).fill(-Infinity);mn[0]=0;mx[0]=0;
+ const pr=Array(A+1).fill(0);
+ for(let a=1;a<=A;a++)for(const v of vs)if(a>=v){
+  if(mn[a-v]+1<mn[a]){mn[a]=mn[a-v]+1;pr[a]=v}
+  if(mx[a-v]+1>mx[a])mx[a]=mx[a-v]+1;}
+ let combo=null;
+ if(isFinite(mn[A])){combo=zero();let a=A;while(a>0){const v=pr[a];const k=KEYS.find(k=>BK[k].v===v);combo[k]++;a-=v}}
+ return{min:mn[A],max:mx[A],combo};
+}
+let solCache=null;
+function sols(){
+ const key=[S.amount,S.count,en().join('')].join('|');
+ if(solCache&&solCache.key===key)return solCache.list;
+ const ks=en().reverse(),vs=ks.map(k=>BK[k].v),res=[],cap=3000;
+ const rec=(i,a,n,cur)=>{
+  if(res.length>=cap)return;
+  if(i===ks.length-1){if(a===n*vs[i]){cur[ks[i]]=n;res.push({...cur});cur[ks[i]]=0}return}
+  const lo=vs[ks.length-1],hi=vs[i+1];
+  for(let c=0;c<=Math.min(n,Math.floor(a/vs[i]));c++){
+   const ra=a-c*vs[i],rn=n-c;
+   if(ra<rn*lo||ra>rn*hi)continue;
+   cur[ks[i]]=c;rec(i+1,ra,rn,cur);cur[ks[i]]=0;}
+ };
+ if(ks.length)rec(0,S.amount,S.count,zero());
+ solCache={key,list:res};return res;
+}
+function cw(i,a,n,ks,memo){
+ if(a<0||n<0)return 0;
+ if(i>=ks.length)return a===0&&n===0?1:0;
+ const v=BK[ks[i]].v;
+ if(i===ks.length-1)return a===n*v?1:0;
+ const key=i+'|'+a+'|'+n;if(memo.has(key))return memo.get(key);
+ let s=0;for(let c=0;c<=Math.min(n,Math.floor(a/v));c++)s+=cw(i+1,a-c*v,n-c,ks,memo);
+ memo.set(key,s);return s;
+}
+const solved=c=>cnt(c)===S.count&&val(c)===S.amount&&S.count>0;
+
+/* ---------- state changes ---------- */
+function setCombo(c,label,noHist){
+ const nc=zero();KEYS.forEach(k=>nc[k]=S.enabled[k]?Math.max(0,c[k]||0):0);
+ S.combo=nc;S.sorted=false;
+ if(!noHist){S.hist.push({label,combo:{...nc}});if(S.hist.length>80)S.hist.shift()}
+ if(solved(nc))S.found.add(ckey(nc));
+ renderAll();
+}
+function setProblem(A,N,clear){
+ S.amount=Math.max(1,Math.min(AM,Math.round(A)||1));S.count=Math.max(1,Math.min(NM,Math.round(N)||1));
+ S.found=new Set();S.peel=[];S.reveal=false;
+ if(clear){S.combo=zero();S.table=[];S.hist.push({label:`new problem ${S.count} coins = ${fmt(S.amount)}`,combo:zero()})}
+ renderAll();
+}
+function surprise(){
+ for(let t=0;t<400;t++){
+  const A=ri(10,300),N=ri(2,Math.min(60,A)),w=ways(N,A);
+  if(w>=1&&w<=40){setProblem(A,N,true);startPredict();return}
+ }
+ setProblem(100,50,true);startPredict();
+}
+function startPredict(){S.pred=S.predictOn?{pending:true}:null}
+
+/* ---------- table top ---------- */
+function syncTable(){
+ KEYS.forEach(k=>{
+  const mine=S.table.filter(c=>c.k===k);
+  const want=S.combo[k];
+  if(mine.length>want){const drop=new Set(mine.slice(want).map(c=>c.id));S.table=S.table.filter(c=>!drop.has(c.id))}
+  for(let i=mine.length;i<want;i++)S.table.push({id:++S.uid,k,x:50+Math.random()*600,y:50+Math.random()*250});
+ });
+}
+function arrange(g){
+ g=+g||5;const dy=g===10?3:4;let y=12;S.labels=[];
+ KEYS.forEach(k=>{
+  const cs=S.table.filter(c=>c.k===k);if(!cs.length)return;
+  const r=R(k),pw=2*r+10,per=Math.floor(660/pw),ph=2*r+(g-1)*dy,rows=Math.ceil(cs.length/g/per),full=Math.floor(cs.length/g),rem=cs.length%g;
+  S.labels.push({x:20,y:y+12,text:`${BK[k].pl}: ${full?full+' pile'+(full>1?'s':'')+' of '+g:''}${full&&rem?' + ':''}${rem?rem+' extra':''} = ${cs.length} coin${cs.length>1?'s':''} · ${fmt(cs.length*BK[k].v)}`});
+  y+=20;
+  cs.forEach((c,n)=>{const pi=Math.floor(n/g),jj=n%g,row=Math.floor(pi/per),col=pi%per;
+   c.x=20+r+col*pw;c.y=y+row*(ph+10)+ph-r-jj*dy;});
+  y+=rows*(ph+10)+6;
+ });
+ S.ttH=Math.max(420,y+8);
+ const svg=$('#tt');svg.classList.add('anim');svg.setAttribute('viewBox','0 0 700 '+S.ttH);
+ $('#ttbg').setAttribute('height',S.ttH);$('#ttbd').setAttribute('height',S.ttH-12);
+ S.table.forEach(c=>{const el=svg.querySelector('[data-id="'+c.id+'"]');if(el)el.style.transform=`translate(${c.x}px,${c.y}px)`});
+ S.table.sort((a,b)=>b.y-a.y);
+ clearTimeout(S._at);S._at=setTimeout(()=>{svg.classList.remove('anim');S.sorted=true;renderTable()},750);
+}
+function coinG(c){return `<g class="tcoin" data-id="${c.id}" style="cursor:grab;transform:translate(${c.x}px,${c.y}px)"><g transform="scale(${R(c.k)})"><use href="#coin-${c.k}" x="-1" y="-1" width="2" height="2"/></g></g>`}
+function renderTable(){
+ syncTable();
+ if(!S.table.length)S.ttH=420;const H=S.ttH;$('#tt').setAttribute('viewBox','0 0 700 '+H);
+ $('#tt').innerHTML=`<rect id="ttbg" width="700" height="${H}" fill="#1f6b46"/><rect id="ttbd" x="6" y="6" width="688" height="${H-12}" rx="14" fill="none" stroke="#fff3" stroke-width="3"/>`+(S.sorted?S.labels.map(l=>`<text class="tlabel" x="${l.x}" y="${l.y}" fill="#fff" font-size="13" font-weight="600">${l.text}</text>`).join(''):'')+
+  (S.table.length?'':`<text x="350" y="215" text-anchor="middle" fill="#fff6" font-size="22">Drag coins here from the tray</text>`)+
+  S.table.map(coinG).join('');
+ const c=S.combo;
+ $('#tray').innerHTML=en().map(k=>`<div class="tray-coin" data-k="${k}">${icon(k,34)}<span>${BK[k].name}<br><small>${BK[k].t} · ×${c[k]}</small></span></div>`).join('')+
+  `<button class="btn alt" data-act="arrange" data-arg="5">Sort ×5</button><button class="btn alt" data-act="arrange" data-arg="10">Sort ×10</button><button class="btn alt" data-act="reset">Clear</button><span class="muted">Drag out to remove · double-click removes</span>`;
+}
+function svgPt(e){const s=$('#tt'),p=s.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(s.getScreenCTM().inverse())}
+const inSvg=e=>{const r=$('#tt').getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
+function addCoin(k,x,y){
+ S.table.push({id:++S.uid,k,x,y});
+ setCombo({...S.combo,[k]:S.combo[k]+1},'+1 '+BK[k].name);
+}
+function removeCoin(id){
+ const c=S.table.find(c=>c.id===id);if(!c)return;
+ S.table=S.table.filter(x=>x.id!==id);
+ setCombo({...S.combo,[c.k]:S.combo[c.k]-1},'-1 '+BK[c.k].name);
+}
+document.addEventListener('pointerdown',e=>{
+ const tc=e.target.closest('.tcoin');
+ if(tc){
+  e.preventDefault();
+  const coin=S.table.find(c=>c.id==tc.dataset.id);if(!coin)return;S.sorted=false;document.querySelectorAll('.tlabel').forEach(n=>n.remove());
+  const p0=svgPt(e),off={x:coin.x-p0.x,y:coin.y-p0.y};tc.parentNode.appendChild(tc);
+  const mv=ev=>{const p=svgPt(ev);coin.x=p.x+off.x;coin.y=p.y+off.y;tc.style.transform=`translate(${coin.x}px,${coin.y}px)`};
+  const up=ev=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);
+   if(!inSvg(ev))removeCoin(coin.id);else{coin.x=Math.max(10,Math.min(690,coin.x));coin.y=Math.max(10,Math.min(S.ttH-10,coin.y));tc.style.transform=`translate(${coin.x}px,${coin.y}px)`}};
+  window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);return;
+ }
+ const tr=e.target.closest('.tray-coin');
+ if(tr){
+  e.preventDefault();
+  const k=tr.dataset.k,sx=e.clientX,sy=e.clientY;let moved=false;
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('opacity','.85');g.innerHTML=`<g transform="scale(${R(k)})"><use href="#coin-${k}" x="-1" y="-1" width="2" height="2"/></g>`;
+  const place=ev=>{const p=svgPt(ev);g.setAttribute('transform',`translate(${p.x},${p.y})`)};
+  const mv=ev=>{if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>6){moved=true;$('#tt').appendChild(g)}if(moved)place(ev)};
+  const up=ev=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);g.remove();
+   if(!moved)addCoin(k,60+Math.random()*580,60+Math.random()*240);
+   else if(inSvg(ev)){const p=svgPt(ev);addCoin(k,p.x,p.y)}};
+  window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);
+ }
+});
+document.addEventListener('dblclick',e=>{const tc=e.target.closest('.tcoin');if(tc)removeCoin(+tc.dataset.id)});
+
+/* ---------- header ---------- */
+function renderBar(){
+ $('#bar').innerHTML=`<label>Amount <input type="number" min="1" max="${AM}" value="${S.amount}" data-in="amount">¢ <span class="muted">${fmt(S.amount)}</span></label>
+ <label>Coins <input type="number" min="1" max="${NM}" value="${S.count}" data-in="count"></label>
+ <span>${COINS.map(c=>`<button class="chip ${S.enabled[c.k]?'on':''}" data-act="toggle" data-arg="${c.k}">${icon(c.k,22)}${c.name}</button>`).join(' ')}</span>
+ <button class="btn alt" data-act="fewer">◀ Fewer types</button><button class="btn alt" data-act="more">More types ▶</button>
+ <button class="btn" data-act="surprise">🎲 Surprise me</button>
+ <button class="btn alt" data-act="one">Show me one</button>
+ <button class="btn alt" data-act="undo">↶ Undo</button>
+ <label><input type="checkbox" data-in="predict" ${S.predictOn?'checked':''}> Predict first</label>`;
+ const c=S.combo,n=cnt(c),v=val(c),dn=S.count-n,dv=S.amount-v;
+ const w=solved(c);
+ $('#status').innerHTML=`<span class="pill ${n===S.count?'ok':'bad'}">Coins ${n} / ${S.count}${dn>0?` · ${dn} more`:dn<0?` · ${-dn} too many`:' ✓'}</span>
+  <span class="pill ${v===S.amount?'ok':'bad'}">Value ${fmt(v)} / ${fmt(S.amount)}${dv>0?` · ${fmt(dv)} to go`:dv<0?` · ${fmt(-dv)} too much`:' ✓'}</span>
+  ${w?'<span class="pill win">🎉 Solved!</span>':''}`;
+ const p=S.pred;
+ $('#predict').innerHTML=!p?'':p.pending?`<div class="card"><b>Predict:</b> how many different ways can ${S.count} coins make ${fmt(S.amount)}? ${[['0','Impossible'],['1','Exactly 1'],['2','2–5'],['6','6–20'],['21','21 or more']].map(([a,b])=>`<button class="mv" data-act="guess" data-arg="${a}">${b}</button>`).join('')}</div>`:
+  `<div class="card">${p.msg} <span class="muted">Streak: ${S.streak}</span></div>`;
+}
+function guess(g){
+ const w=ways(S.count,S.amount);g=+g;
+ const cls=w===0?0:w===1?1:w<=5?2:w<=20?6:21;
+ const ok=cls===g;S.streak=ok?S.streak+1:0;
+ S.pred={pending:false,msg:`${ok?'✅ Right!':'❌ Not quite.'} There ${w===1?'is 1 way':'are '+w+' ways'}.`};
+ renderAll();
+}
+
+/* ---------- panels ---------- */
+const TABS=[['Views',[['table','Table'],['eq','Equations'],['graph','Graph'],['map','Map']]],
+ ['Strategies',[['trade','Trade'],['twostep','Two-step'],['peel','Peel-off'],['bounds','Bounds'],['pairs','Two types'],['balance','Balance'],['family','Families']]],
+ ['Progress',[['sols','Solutions'],['hist','History']]]];
+const PANELS={table:pTable,eq:pEq,graph:pGraph,map:pMap,trade:pTrade,twostep:pTwo,peel:pPeel,bounds:pBounds,pairs:pPairs,balance:pBalance,family:pFamily,sols:pSols,hist:pHist};
+function renderRight(){
+ $('#tabs').innerHTML=TABS.map(([g,ts])=>`<span class="g">${g}</span>`+ts.map(([id,n])=>`<button class="${S.open.includes(id)?'on':''}" data-act="tab" data-arg="${id}">${S.open.includes(id)?'−':'+'} ${n}</button>`).join('')).join('');
+ $('#panels').innerHTML=S.open.length?S.open.map(id=>`<div class="card panel"><button class="pclose" data-act="tab" data-arg="${id}" title="Hide">−</button>${PANELS[id]()}</div>`).join(''):'<p class="muted">Use the + buttons above to open views and strategies. Open as many as you like.</p>';
+ if(S.open.includes('map'))drawMap();
+}
+const hidden=()=>S.pred&&S.pred.pending;
+const hiddenMsg='<p class="muted">🙈 Make your prediction first — then this view will reveal the answer.</p>';
+
+function pTable(){
+ const c=S.combo;
+ return `<h3>Table</h3><table><tr><th>Coin</th><th>Value</th><th>How many</th><th>Coins</th><th>Worth</th></tr>
+ ${en().map(k=>`<tr><td>${icon(k,22)} ${BK[k].name}</td><td>${BK[k].t}</td>
+ <td><span class="step"><button data-act="dec" data-arg="${k}">−</button><input type="number" min="0" value="${c[k]}" data-in="tbl" data-k="${k}"><button data-act="inc" data-arg="${k}">+</button></span></td>
+ <td>${c[k]}</td><td>${fmt(c[k]*BK[k].v)}</td></tr>`).join('')}
+ <tr><th colspan="3">Total</th><th>${cnt(c)} / ${S.count}</th><th>${fmt(val(c))} / ${fmt(S.amount)}</th></tr></table>`;
+}
+function pEq(){
+ const c=S.combo,ks=en(),n=cnt(c),v=val(c);
+ const sym=ks.map(k=>`${BK[k].v}×<input type="number" min="0" value="${c[k]}" data-in="eq" data-k="${k}" title="${BK[k].pl}"> <small>${BK[k].l}</small>`).join(' + ');
+ const sym2=ks.map(k=>`<input type="number" min="0" value="${c[k]}" data-in="eq" data-k="${k}"> <small>${BK[k].l}</small>`).join(' + ');
+ const sub1=ks.map(k=>`${BK[k].v}(${c[k]})`).join(' + ');
+ const sub2=ks.map(k=>c[k]).join(' + ');
+ const b=ks[0],v0=BK[b].v,rest=ks.slice(1),rhs=S.amount-v0*S.count,cur=rest.reduce((s,k)=>s+(BK[k].v-v0)*c[k],0);
+ return `<h3>Equations</h3>
+ <div class="muted">Value (cents)</div><div class="eq">${sym} = <b>${S.amount}</b></div>
+ <div class="muted">${sub1} = <b class="${v===S.amount?'pos':'neg'}">${v}</b> ${v===S.amount?'✓':'≠ '+S.amount}</div>
+ <div class="muted" style="margin-top:10px">Count</div><div class="eq">${sym2} = <b>${S.count}</b></div>
+ <div class="muted">${sub2} = <b class="${n===S.count?'pos':'neg'}">${n}</b> ${n===S.count?'✓':'≠ '+S.count}</div>
+ <div class="muted" style="margin-top:10px">Subtract ${v0} × (count equation) from the value equation:</div>
+ <div class="eq">${rest.length?rest.map(k=>`${BK[k].v-v0}${BK[k].l}`).join(' + ')+' = '+S.amount+' − '+v0+'×'+S.count+' = <b>'+rhs+'</b>':'(only one coin type)'}</div>
+ <div class="muted">${rest.length?`Right now: ${cur} ${cur===rhs?'✓ matches':'vs '+rhs}`:''}</div>
+ ${rhs<0?'<p class="neg">The right side is negative — too many coins for this amount: impossible.</p>':''}`;
+}
+function pGraph(){
+ const ks=en();if(ks.length<2)return '<h3>Graph</h3><p class="muted">Enable at least two coin types.</p>';
+ if(!ks.includes(S.gx))S.gx=ks[0];if(!ks.includes(S.gy)||S.gy===S.gx)S.gy=ks.find(k=>k!==S.gx);
+ const gx=S.gx,gy=S.gy,vx=BK[gx].v,vy=BK[gy].v,c=S.combo;
+ const rest=ks.filter(k=>k!==gx&&k!==gy),dep=rest.slice(0,2),fixed=rest.slice(2);
+ const fc=fixed.reduce((s,k)=>s+c[k],0),fv=fixed.reduce((s,k)=>s+BK[k].v*c[k],0),N0=S.count-fc,A0=S.amount-fv;
+ const sel=(id,cur)=>`<select data-in="${id}">${ks.map(k=>`<option value="${k}" ${k===cur?'selected':''}>${BK[k].pl}</option>`).join('')}</select>`;
+ const head=`<h3>Graph of all solutions</h3><div class="row">across: ${sel('gx',gx)} up: ${sel('gy',gy)}</div>`;
+ const fx=fixed.length?`<div class="card" style="background:#faf8f0"><b>Held fixed:</b> ${fixed.map(k=>`<span class="step"><button data-act="dec" data-arg="${k}">−</button>${c[k]} ${icon(k,18)}<button data-act="inc" data-arg="${k}">+</button></span>`).join(' ')}<span class="muted"> (with 5+ coin types, two are solved automatically and the rest are held fixed)</span></div>`:'';
+ if(N0<0||A0<0)return head+fx+'<p class="neg">The fixed coins already use too much. Remove some.</p>';
+ const xm=Math.max(1,Math.min(N0,Math.floor(A0/vx))),ym=Math.max(1,Math.min(N0,Math.floor(A0/vy)));
+ const solve=(x,y)=>{
+  const Rn=N0-x-y,Rv=A0-vx*x-vy*y;if(Rn<0||Rv<0)return null;
+  if(dep.length===0)return Rn===0&&Rv===0?{}:null;
+  const[a,b]=dep,va=BK[a].v;
+  if(dep.length===1)return Rn*va===Rv?{[a]:Rn}:null;
+  const vb=BK[b].v,num=Rv-va*Rn;if(num%(vb-va))return null;
+  const bb=num/(vb-va),aa=Rn-bb;return bb<0||aa<0?null:{[a]:aa,[b]:bb};
+ };
+ const W=520,H=380,m=44,sx=(W-2*m)/xm,sy=(H-2*m)/ym,X=x=>m+x*sx,Y=y=>H-m-y*sy;
+ const good=[],near=[];
+ for(let x=0;x<=xm;x++)for(let y=0;y<=ym&&x+y<=N0;y++){
+  const s=solve(x,y);if(s)good.push({x,y,s});
+  else if(dep.length===2&&xm*ym<=3000){
+   const[a,b]=dep,va=BK[a].v,vb=BK[b].v,Rn=N0-x-y,Rv=A0-vx*x-vy*y,bb=(Rv-va*Rn)/(vb-va);
+   if(Rn>=0&&bb>=0&&Rn-bb>=0)near.push({x,y});}
+ }
+ S._gpts=good;
+ let poly='',lines='',legend='';
+ if(dep.length===2){
+  const[a,b]=dep,va=BK[a].v,vb=BK[b].v;
+  const fb=[A0-va*N0,va-vx,va-vy],fa=[vb*N0-A0,vx-vb,vy-vb];
+  const clip=(pts,f)=>{const o=[];for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length],fp=f[0]+f[1]*p[0]+f[2]*p[1],fq=f[0]+f[1]*q[0]+f[2]*q[1];
+   if(fp>=0)o.push(p);if((fp>=0)!==(fq>=0)){const t=fp/(fp-fq);o.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])])}}return o};
+  let pg=[[0,0],[xm,0],[xm,ym],[0,ym]];pg=clip(clip(pg,fb),fa);
+  if(pg.length>2)poly=`<polygon points="${pg.map(p=>X(p[0])+','+Y(p[1])).join(' ')}" fill="#9be3a8" fill-opacity=".45"/>`;
+  const seg=(f,col)=>{const pts=[];
+   [0,xm].forEach(x=>{if(f[2]){const y=-(f[0]+f[1]*x)/f[2];if(y>=-1e-9&&y<=ym+1e-9)pts.push([x,y])}});
+   [0,ym].forEach(y=>{if(f[1]){const x=-(f[0]+f[2]*y)/f[1];if(x>=-1e-9&&x<=xm+1e-9)pts.push([x,y])}});
+   return pts.length>=2?`<line x1="${X(pts[0][0])}" y1="${Y(pts[0][1])}" x2="${X(pts[1][0])}" y2="${Y(pts[1][1])}" stroke="${col}" stroke-width="3"/>`:''};
+  lines=seg(fb,'#d9822b')+seg(fa,'#2b7de0');
+  legend=`<li><span style="color:#2b7de0"><b>Blue line</b></span>: the edge where you'd have <b>0 ${BK[a].pl}</b>. <span style="color:#d9822b"><b>Orange line</b></span>: the edge where you'd have <b>0 ${BK[b].pl}</b>. Beyond an edge, that coin count would go negative.</li>
+   <li><span style="background:#9be3a8;padding:0 4px">Green area</span>: the ${BK[gx].pl}/${BK[gy].pl} mixes that leave a non-negative amount of ${BK[a].pl} and ${BK[b].pl}.</li>`;
+ }
+ const ts=v=>Math.max(1,Math.ceil(v/10));
+ let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#faf8f0;border-radius:10px">`;
+ for(let x=0;x<=xm;x+=ts(xm))g+=`<line x1="${X(x)}" y1="${Y(0)}" x2="${X(x)}" y2="${m}" stroke="#0001"/><text x="${X(x)}" y="${H-m+16}" font-size="11" text-anchor="middle">${x}</text>`;
+ for(let y=0;y<=ym;y+=ts(ym))g+=`<line x1="${m}" y1="${Y(y)}" x2="${W-m}" y2="${Y(y)}" stroke="#0001"/><text x="${m-6}" y="${Y(y)+4}" font-size="11" text-anchor="end">${y}</text>`;
+ g+=poly+lines;
+ near.forEach(p=>g+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="2" fill="#0003"/>`);
+ g+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="12">number of ${BK[gx].pl}</text><text x="12" y="${H/2}" font-size="12" transform="rotate(-90 12 ${H/2})" text-anchor="middle">number of ${BK[gy].pl}</text>`;
+ good.forEach((p,i)=>{const f=S.found.has(ckey({...zero(),...Object.fromEntries(fixed.map(k=>[k,c[k]])),...p.s,[gx]:p.x,[gy]:p.y}));
+  g+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="7" fill="${f?'#2e9d46':'#2b3a67'}" stroke="#fff" stroke-width="1.5" data-act="gdot" data-arg="${i}" style="cursor:pointer"><title>${[gx,gy,...dep].map(k=>(k===gx?p.x:k===gy?p.y:p.s[k])+' '+BK[k].pl).join(', ')}</title></circle>`});
+ if(c[gx]<=xm&&c[gy]<=ym)g+=`<circle cx="${X(c[gx])}" cy="${Y(c[gy])}" r="12" fill="none" stroke="#e03" stroke-width="3" pointer-events="none"/>`;
+ g+='</svg>';
+ const dn=dep.map(k=>BK[k].pl).join(' and ');
+ return head+fx+g+`<div class="card" style="background:#faf8f0;margin-top:8px"><b>${good.length} solution${good.length===1?'':'s'}${fixed.length?' with these fixed coins':''}.</b>
+ <ul class="muted" style="margin:4px 0 0;padding-left:18px">
+ <li>Each <b>big dot is one complete answer</b>. Its position gives the ${BK[gx].pl} and ${BK[gy].pl}${dep.length?`; the ${dn} are then forced by the count and value rules (hover a dot to see them all)`:''}. Click a dot to load it. Green = found already.</li>
+ ${legend}
+ ${near.length?`<li>Small grey dots are mixes inside the green area where ${dn} would need a fraction of a coin, so they are <b>not</b> answers. Only some grid points work, which is why the answers form a pattern.</li>`:''}
+ <li><b>Red ring</b> = what you have now (${c[gx]} ${BK[gx].pl}, ${c[gy]} ${BK[gy].pl}). Try other axes to see the solutions from a different angle.</li></ul></div>`;
+}
+function pMap(){
+ if(hidden())return '<h3>Map</h3>'+hiddenMsg;
+ const chart=(label,n,f,mark,act)=>{let b=`<svg viewBox="0 0 ${n} 40" width="100%" height="60" preserveAspectRatio="none" style="background:#f3f0e4;border-radius:6px">`;
+  let mx=1;for(let i=1;i<=n;i++)mx=Math.max(mx,f(i));
+  for(let i=1;i<=n;i++){const h=f(i)>0?Math.max(2,Math.sqrt(f(i)/mx)*38):0;
+   b+=`<rect x="${i-1}" y="${40-h}" width="1" height="${h}" fill="${i===mark?'#e03':'#2b3a67'}" data-act="${act}" data-arg="${i}" style="cursor:pointer"/>`}
+  return `<div class="muted">${label}</div>`+b+'</svg>'};
+ return `<h3>Problem Map</h3><canvas id="map" width="600" height="400"></canvas>
+ <div class="muted">→ amount 1–300¢ · ↑ coins 1–100 · brighter = more solutions · dark = none · click to load a problem</div>
+ ${chart(`Holding ${S.count} coins, sweep the amount (1–300¢): ways`,300,a=>ways(S.count,a),S.amount,'setA')}
+ ${chart(`Holding ${fmt(S.amount)}, sweep the coin count (1–100): ways`,100,n=>ways(n,S.amount),S.count,'setN')}`;
+}
+function drawMap(){
+ const cv=$('#map'),x=cv.getContext('2d');let mx=1;
+ for(let n=1;n<=100;n++)for(let a=1;a<=300;a++)mx=Math.max(mx,ways(n,a));
+ x.fillStyle='#222';x.fillRect(0,0,600,400);
+ for(let n=1;n<=100;n++)for(let a=1;a<=300;a++){const w=ways(n,a);if(!w)continue;
+  const t=Math.log(w+1)/Math.log(mx+1);x.fillStyle=`hsl(${220-t*170},80%,${35+t*25}%)`;x.fillRect((a-1)*2,(100-n)*4,2,4)}
+ x.strokeStyle='#fff';x.lineWidth=2;x.strokeRect((S.amount-1)*2-3,(100-S.count)*4-3,8,10);
+ const tip=$('#tip'),pos=e=>{const r=cv.getBoundingClientRect();return[Math.floor((e.clientX-r.left)/r.width*300)+1,100-Math.floor((e.clientY-r.top)/r.height*100)]};
+ cv.onmousemove=e=>{const[a,n]=pos(e);tip.style.display='block';tip.style.left=e.clientX+12+'px';tip.style.top=e.clientY+12+'px';tip.textContent=`${n} coins = ${fmt(a)}: ${ways(n,a)} ways`};
+ cv.onmouseleave=()=>tip.style.display='none';
+ cv.onclick=e=>{const[a,n]=pos(e);if(a>=1&&n>=1)setProblem(a,n,true)};
+}
+
+const TRADES=[['N',{P:5}],['D',{N:2}],['D',{P:10}],['D',{N:1,P:5}],['Q',{D:2,N:1}],['Q',{D:1,N:3}],['Q',{N:5}],['Q',{D:2,P:5}],['Q',{P:25}],['H',{Q:2}],['H',{D:5}],['H',{Q:1,D:2,N:1}],['H',{N:10}],['S',{H:2}],['S',{Q:4}],['S',{D:10}]];
+const bag=b=>Object.entries(b).map(([k,n])=>`${n}${icon(k,18)}`).join('+');
+function tradeBtns(filter){
+ const c=S.combo;let out='';
+ TRADES.forEach(([f,to],i)=>{
+  const ok=S.enabled[f]&&Object.keys(to).every(k=>S.enabled[k]);if(!ok)return;
+  const d=Object.values(to).reduce((a,b)=>a+b,0)-1;
+  if(filter!=='merge'&&c[f]>0)out+=`<button class="mv" data-act="trade" data-arg="${i},s">${icon(f,18)} → ${bag(to)} <small>(coins +${d})</small></button>`;
+  if(filter!=='split'&&Object.entries(to).every(([k,n])=>c[k]>=n))out+=`<button class="mv" data-act="trade" data-arg="${i},m">${bag(to)} → ${icon(f,18)} <small>(coins −${d})</small></button>`;
+ });
+ return out||'<span class="muted">No trades available — add some coins.</span>';
+}
+function pTrade(){
+ const dn=S.count-cnt(S.combo);
+ return `<h3>Trade game</h3><p class="muted">Trades never change the value. Splitting adds coins, merging removes coins. ${dn?`You need <b>${dn>0?'+'+dn:dn}</b> coins.`:'Coin count is right.'} Value gap: <b>${fmt(S.amount-val(S.combo))}</b></p>
+ <b>Split (more coins)</b><div>${tradeBtns('split')}</div><b>Merge (fewer coins)</b><div>${tradeBtns('merge')}</div>`;
+}
+function applyTrade(i,dir){
+ const [f,to]=TRADES[i],c={...S.combo};
+ if(dir==='s'){c[f]--;for(const k in to)c[k]+=to[k]}else{for(const k in to)c[k]-=to[k];c[f]++}
+ setCombo(c,'trade '+(dir==='s'?`${BK[f].l}→${Object.entries(to).map(([k,n])=>n+BK[k].l).join('+')}`:'merge→'+BK[f].l));
+}
+function pTwo(){
+ const ks=en(),k0=ks[0],v0=BK[k0].v,mm=minMax(S.amount),c=S.combo;
+ return `<h3>Two-step</h3>
+ <b>A. Fix the count first</b>
+ <p class="muted">Start with ${S.count} ${BK[k0].pl} (right count, too little value), then upgrade coins. Need <b>${fmt(S.amount-S.count*v0)}</b> in upgrades from steps of ${ks.slice(1).map(k=>`${icon(k,16)}+${BK[k].v-v0}¢`).join(', ')}.</p>
+ <button class="btn" data-act="fillbase">Fill with ${S.count} ${BK[k0].pl}</button>
+ <div>${ks.slice(1).map(k=>`<button class="mv" data-act="swap" data-arg="${k}" ${c[k0]>0?'':'disabled'}>${icon(k0,18)}→${icon(k,18)} <small>+${BK[k].v-v0}¢</small></button><button class="mv" data-act="unswap" data-arg="${k}" ${c[k]>0?'':'disabled'}>${icon(k,18)}→${icon(k0,18)} <small>−${BK[k].v-v0}¢</small></button>`).join('<br>')}</div>
+ <p class="muted">Value gap now: <b>${fmt(S.amount-val(c))}</b></p>
+ <hr><b>B. Fix the value first</b>
+ <p class="muted">Start with the fewest coins for ${fmt(S.amount)}${mm.combo?` (${mm.min} coins)`:''}, then split coins until you have ${S.count}.</p>
+ <button class="btn" data-act="greedy" ${mm.combo?'':'disabled'}>Fewest coins</button>
+ <div>${tradeBtns('split')}</div><p class="muted">Coins needed: <b>${S.count-cnt(c)}</b></p>`;
+}
+function pPeel(){
+ const ks=en().reverse(),memo=new Map();let a=S.amount,n=S.count,h=`<h3>Peel-off</h3><p class="muted">Choose how many of the biggest coin, then the next… each choice leaves a smaller problem. Numbers show how many ways remain.</p>`;
+ const chosen=[];
+ for(let i=0;i<ks.length;i++){
+  const k=ks[i],v=BK[k].v;
+  h+=`<div class="card"><b>${icon(k,20)} ${BK[k].pl}</b> <span class="muted">· ${fmt(a)} left, ${n} coins left</span><div>`;
+  if(i===ks.length-1){
+   const ok=a===n*v;h+=`<span class="${ok?'pos':'neg'}">${ok?`Last coins: exactly ${n} ✓`:`Dead end: ${n} ${BK[k].pl} = ${fmt(n*v)}, not ${fmt(a)}`}</span>`;
+   if(ok)chosen[i]=n;break;
+  }
+  for(let c=0;c<=Math.min(n,Math.floor(a/v));c++){
+   const w=cw(i+1,a-c*v,n-c,ks,memo),sel=S.peel[i]===c;
+   h+=`<button class="mv ${w?'':'dead'} ${sel?'sel':''}" data-act="peel" data-arg="${i},${c}">${c} <small>${w?w+(w===1?' way':' ways'):'×'}</small></button>`;
+  }
+  h+='</div></div>';
+  if(S.peel[i]==null){break}
+  chosen[i]=S.peel[i];a-=S.peel[i]*v;n-=S.peel[i];
+ }
+ h+=`<button class="btn" data-act="peelapply">Place on table</button> <button class="btn alt" data-act="peelclear">Start over</button>`;
+ S._peelChosen=chosen;S._peelKs=ks;
+ return h;
+}
+function pBounds(){
+ const ks=en(),vs=ks.map(k=>BK[k].v),mm=minMax(S.amount),N=S.count,A=S.amount;
+ const g=vs.reduce(gcd,0),avg=A/N,lo=Math.min(...vs),hi=Math.max(...vs);
+ const okList=[];for(let n=1;n<=NM;n++)if(ways(n,A)>0)okList.push(n);
+ const w=ways(N,A);
+ let verdict;
+ if(A%g)verdict=`Impossible: every coin value is a multiple of ${g}¢, but ${A} is not.`;
+ else if(!isFinite(mm.min))verdict='Impossible with these coins.';
+ else if(N<mm.min)verdict=`Too few coins: even the biggest coins need at least ${mm.min}.`;
+ else if(N>mm.max)verdict=`Too many coins: even the smallest coins use at most ${mm.max}.`;
+ else if(avg<lo||avg>hi)verdict=`Impossible: the average coin would be worth ${avg.toFixed(2)}¢, outside ${lo}¢–${hi}¢.`;
+ else verdict=w?`Possible! ${w} way${w===1?'':'s'}.`:'In range, but there is a gap — no combination hits exactly this count.';
+ const mx=isFinite(mm.max)?mm.max:N,top=Math.max(mx,N)+1,W=520,X=n=>20+n/top*(W-40);
+ let svg=`<svg viewBox="0 0 ${W} 70" width="100%"><line x1="20" y1="35" x2="${W-20}" y2="35" stroke="#999"/>`;
+ if(isFinite(mm.min))svg+=`<rect x="${X(mm.min)}" y="28" width="${X(mm.max)-X(mm.min)}" height="14" fill="#cfe3ff"/>`;
+ okList.filter(n=>n<=top).forEach(n=>svg+=`<circle cx="${X(n)}" cy="35" r="3" fill="#2e9d46"/>`);
+ svg+=`<path d="M${X(N)} 30 l-6 -12 h12z" fill="#e03"/><text x="${X(N)}" y="62" text-anchor="middle" font-size="12">${N}</text>`;
+ if(isFinite(mm.min))svg+=`<text x="${X(mm.min)}" y="62" text-anchor="middle" font-size="11">min ${mm.min}</text><text x="${X(mm.max)}" y="14" text-anchor="middle" font-size="11">max ${mm.max}</text>`;
+ svg+='</svg>';
+ return `<h3>Bounds</h3><div class="row"><b class="${w?'pos':'neg'}">${verdict}</b></div>${svg}
+ <div class="muted">Blue = counts between fewest and most coins for ${fmt(A)}. Green dots = counts that really work. Red ▼ = your target.</div>
+ <ul><li>Fewest coins: ${isFinite(mm.min)?mm.min:'—'} · Most coins: ${isFinite(mm.max)?mm.max:'—'}</li>
+ <li>Average coin: ${fmt(A)} ÷ ${N} = ${avg.toFixed(2)}¢ (must be between ${lo}¢ and ${hi}¢)</li>
+ <li>All coin values are multiples of ${g}¢</li></ul>`;
+}
+function pairSolve(a,b){
+ const va=BK[a].v,vb=BK[b].v,y=(S.amount-S.count*va)/(vb-va),x=S.count-y;
+ return{x,y,ok:Number.isInteger(y)&&y>=0&&x>=0};
+}
+function pPairs(){
+ const ks=en();let rows='';
+ for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){
+  const a=ks[i],b=ks[j],r=pairSolve(a,b);
+  rows+=`<tr class="${r.ok?'click':''}"${r.ok?` data-act="pairload" data-arg="${a},${b}"`:''}><td>${icon(a,18)} + ${icon(b,18)}</td><td>${r.ok?`<b class="pos">${r.x} ${BK[a].pl}, ${r.y} ${BK[b].pl}</b>`:`<span class="neg">${Number.isInteger(r.y)?'negative amount':'not a whole number ('+(+r.y.toFixed(2))+' '+BK[b].pl+')'}</span>`}</td><td>${r.ok?`<button class="mv" data-act="paironly" data-arg="${a},${b}">Use only these</button>`:''}</td></tr>`;
+ }
+ return `<h3>Two types at a time</h3><p class="muted">With only two coin types, two equations have just one answer: b = (A − N·a) ÷ (b − a).</p>
+ <table>${rows||'<tr><td class="muted">Enable at least two coin types.</td></tr>'}</table>`;
+}
+function pBalance(){
+ const ks=en(),A=S.amount,N=S.count,avg=A/N,c=S.combo,n=cnt(c);
+ const d=k=>BK[k].v-avg,pull=k=>d(k)*c[k];
+ const under=-ks.reduce((s,k)=>s+Math.min(0,pull(k)),0),over=ks.reduce((s,k)=>s+Math.max(0,pull(k)),0),mx=Math.max(1,under,over);
+ const bal=Math.abs(under-over)<1e-9&&n>0;
+ const bar=(v,col,right)=>`<div style="height:22px;background:#eee;border-radius:6px;display:flex;justify-content:${right?'flex-start':'flex-end'}"><div style="width:${v/mx*100}%;background:${col};border-radius:6px"></div></div>`;
+ let ratios='';
+ const lows=ks.filter(k=>BK[k].v<avg),highs=ks.filter(k=>BK[k].v>avg);
+ lows.forEach(lo=>highs.forEach(hi=>{
+  const u=(A-BK[lo].v*N),o=(BK[hi].v*N-A),g=gcd(u,o),a=o/g,b=u/g;
+  ratios+=`<li>${icon(hi,16)} is ${(o/N).toFixed(1)}¢ above, ${icon(lo,16)} is ${(u/N).toFixed(1)}¢ below. So <b>${a}</b> ${icon(lo,16)} × ${(u/N).toFixed(1)}¢ = <b>${b}</b> ${icon(hi,16)} × ${(o/N).toFixed(1)}¢ → ${a} ${BK[lo].pl} balance ${b} ${BK[hi].name.toLowerCase()}${b>1?'s':''}.</li>`}));
+ return `<h3>Balance</h3>
+ <p class="muted">${N} coins worth ${fmt(A)} means the <b>average coin is ${(avg).toFixed(2)}¢</b>. Coins worth less pull the average down; coins worth more pull it up. A solution is when the pulls cancel out.</p>
+ <table><tr><th>Coin</th><th>vs. average</th><th>You have</th><th>Pull</th></tr>
+ ${ks.map(k=>`<tr><td>${icon(k,18)} ${BK[k].t}</td><td class="${d(k)<0?'neg':'pos'}">${d(k)>0?'+':''}${d(k).toFixed(2)}¢ each</td><td>${c[k]}</td><td class="${d(k)<0?'neg':'pos'}">${c[k]?(pull(k)>0?'+':'')+pull(k).toFixed(1):'–'}</td></tr>`).join('')}</table>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px"><div class="muted" style="text-align:right">Pull down: ${under.toFixed(1)}</div><div class="muted">Pull up: ${over.toFixed(1)}</div>${bar(under,'#e59a77',false)}${bar(over,'#58b862',true)}</div>
+ <p>${bal?`<b class="pos">⚖️ Balanced! Your coins average exactly ${avg.toFixed(2)}¢.</b>${n!==N?` (But you need ${N} coins, you have ${n}.)`:''}`:`Not balanced yet — add ${under>over?'higher-value':'lower-value'} coins.`}</p>
+ <b>Why the odd ratios?</b><p class="muted">A coin far from the average has a bigger pull, so fewer of them balance many small ones. Each line compares one coin below average with one above:</p>
+ <ul>${ratios||'<li class="muted">Needs coins both below and above the average.</li>'}</ul>`;
+}
+function pFamily(){
+ const c=S.combo;
+ if(!solved(c))return `<h3>Families</h3><p class="muted">Load a solution first, then see which small moves lead to other solutions.</p><button class="btn" data-act="one">Show me one</button>`;
+ const ks=en(),cur=ckey(c);
+ const mv=sols().filter(s=>ckey(s)!==cur).map(s=>{const d=zero();KEYS.forEach(k=>d[k]=s[k]-c[k]);return d}).sort((a,b)=>KEYS.reduce((s,k)=>s+Math.abs(a[k]),0)-KEYS.reduce((s,k)=>s+Math.abs(b[k]),0)).slice(0,10);
+ S._moves=mv;
+ return `<h3>Families</h3><p class="muted">Other solutions near this one. A move keeps both coin count and value fixed.</p>`+(mv.length?mv.map((d,i)=>{
+  let rep=0;for(let r=1;r<20;r++){const t={...c};KEYS.forEach(k=>t[k]+=d[k]*r);if(KEYS.every(k=>t[k]>=0)&&solved(t))rep=r;else break}
+  return `<button class="mv" data-act="move" data-arg="${i}">${KEYS.filter(k=>d[k]).map(k=>`<span class="${d[k]>0?'pos':'neg'}">${d[k]>0?'+':''}${d[k]}</span>${icon(k,16)}`).join(' ')}${rep>1?` <small>can repeat ×${rep}</small>`:''}</button>`}).join(''):'<p>This is the only solution!</p>');
+}
+function pSols(){
+ if(hidden())return '<h3>Solutions</h3>'+hiddenMsg;
+ const list=sols(),total=ways(S.count,S.amount),f=S.found.size,ks=en();
+ const show=S.reveal?list:list.filter(s=>S.found.has(ckey(s)));
+ return `<h3>Solutions: found ${f} of ${total}</h3><div class="prog"><i style="width:${total?f/total*100:0}%"></i></div>
+ <div class="row"><button class="btn" data-act="one">Show me one</button><button class="btn alt" data-act="reveal">${S.reveal?'Hide unfound':'Reveal all'}</button></div>
+ ${total===0?'<p class="neg">No combination works for this problem.</p>':''}
+ <table><tr>${ks.map(k=>`<th>${icon(k,18)}</th>`).join('')}<th></th></tr>
+ ${show.map(s=>`<tr class="click ${ckey(s)===ckey(S.combo)?'cur':''}" data-act="load" data-arg="${ckey(s)}">${ks.map(k=>`<td>${s[k]}</td>`).join('')}<td>${S.found.has(ckey(s))?'✅':''}</td></tr>`).join('')}</table>
+ ${!S.reveal&&!show.length?'<p class="muted">Build combos on the table — every new solution you find is collected here.</p>':''}`;
+}
+function pHist(){
+ return `<h3>History</h3>`+[...S.hist].reverse().map((h,i,a)=>`<div class="mv" style="display:flex" data-act="restore" data-arg="${S.hist.length-1-i}">${h.label} <small>${cnt(h.combo)} coins · ${fmt(val(h.combo))}</small></div>`).join('');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+ const el=e.target.closest('[data-act]');if(!el)return;
+ const a=el.dataset.act,g=el.dataset.arg,c=S.combo;
+ switch(a){
+  case'tab':S.open=S.open.includes(g)?S.open.filter(x=>x!==g):[...S.open,g];renderRight();break;
+  case'arrange':arrange(g);break;
+  case'reset':setCombo(zero(),'clear');S.table=[];renderAll();break;
+  case'toggle':{const on=en();if(S.enabled[g]&&on.length===1)break;S.enabled[g]=S.enabled[g]?0:1;
+   S.found=new Set();S.peel=[];const nc={...c};if(!S.enabled[g])nc[g]=0;setCombo(nc,'coin types changed');break}
+  case'fewer':{const on=en();if(on.length>1){S.enabled[on[on.length-1]]=0;S.found=new Set();S.peel=[];setCombo(c,'fewer types')}break}
+  case'more':{const off=KEYS.find(k=>!S.enabled[k]&&BK[k].v>BK[en().slice(-1)[0]].v)||KEYS.find(k=>!S.enabled[k]);if(off){S.enabled[off]=1;S.found=new Set();S.peel=[];setCombo(c,'more types')}break}
+  case'surprise':surprise();break;
+  case'one':{const l=sols().filter(s=>!S.found.has(ckey(s)));const p=l.length?l:sols();if(p.length)setCombo(p[ri(0,p.length-1)],'show me one');else{if(!S.open.includes('sols'))S.open.push('sols');renderAll()}break}
+  case'undo':if(S.hist.length>1){S.hist.pop();setCombo(S.hist[S.hist.length-1].combo,'',true)}break;
+  case'guess':guess(g);break;
+  case'inc':setCombo({...c,[g]:c[g]+1},'+1 '+BK[g].name);break;
+  case'dec':setCombo({...c,[g]:c[g]-1},'-1 '+BK[g].name);break;
+  case'gdot':{const p=S._gpts[+g],nc={...c,...p.s,[S.gx]:p.x,[S.gy]:p.y};setCombo(nc,'graph point');break}
+  case'setA':setProblem(+g,S.count,true);break;
+  case'setN':setProblem(S.amount,+g,true);break;
+  case'trade':{const[i,d]=g.split(',');applyTrade(+i,d);break}
+  case'fillbase':setCombo({[en()[0]]:S.count},'fill '+BK[en()[0]].pl);break;
+  case'swap':{const k0=en()[0];setCombo({...c,[k0]:c[k0]-1,[g]:c[g]+1},`swap ${BK[k0].l}→${BK[g].l}`);break}
+  case'unswap':{const k0=en()[0];setCombo({...c,[k0]:c[k0]+1,[g]:c[g]-1},`swap ${BK[g].l}→${BK[k0].l}`);break}
+  case'greedy':setCombo(minMax(S.amount).combo,'fewest coins');break;
+  case'peel':{const[i,v]=g.split(',').map(Number);S.peel.length=i;S.peel[i]=v;renderRight();break}
+  case'peelclear':S.peel=[];renderRight();break;
+  case'peelapply':{const nc=zero();S._peelKs.forEach((k,i)=>{if(S._peelChosen[i]!=null)nc[k]=S._peelChosen[i]});setCombo(nc,'peel-off');break}
+  case'pairload':{const[x,y]=g.split(','),r=pairSolve(x,y),nc=zero();nc[x]=r.x;nc[y]=r.y;setCombo(nc,`pair ${BK[x].l}+${BK[y].l}`);break}
+  case'paironly':{const[x,y]=g.split(',');KEYS.forEach(k=>S.enabled[k]=(k===x||k===y)?1:0);S.found=new Set();S.peel=[];const r=pairSolve(x,y),nc=zero();nc[x]=r.x;nc[y]=r.y;setCombo(nc,'only '+BK[x].l+BK[y].l);break}
+  case'move':{const d=S._moves[+g],nc={...c};KEYS.forEach(k=>nc[k]+=d[k]);setCombo(nc,'family move');break}
+  case'load':setCombo(Object.fromEntries(KEYS.map((k,i)=>[k,+g.split(',')[i]])),'load solution');break;
+  case'reveal':S.reveal=!S.reveal;renderRight();break;
+  case'restore':setCombo(S.hist[+g].combo,'restore');break;
+ }
+});
+document.addEventListener('change',e=>{
+ const el=e.target,i=el.dataset.in;if(!i)return;
+ if(i==='amount')setProblem(+el.value,S.count,false);
+ else if(i==='count')setProblem(S.amount,+el.value,false);
+ else if(i==='predict'){S.predictOn=el.checked;S.pred=null;renderAll()}
+ else if(i==='tbl'||i==='eq')setCombo({...S.combo,[el.dataset.k]:Math.max(0,Math.floor(+el.value)||0)},'set '+BK[el.dataset.k].pl);
+ else if(i==='gx'){S.gx=el.value;renderRight()}
+ else if(i==='gy'){S.gy=el.value;renderRight()}
+});
+
+function renderAll(){const f=document.activeElement;if(f&&f.tagName==='INPUT')f.blur();renderBar();renderTable();renderRight()}
+buildDefs();renderAll();
+</script>
+</body>
+</html>

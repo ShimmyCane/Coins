@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coins 01 — Coin Combos</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="defs"></defs></svg>
+<div class="app">
+  <div class="top">
+    <h1>🪙 Coin Combos</h1>
+    <div class="ptabs"><button class="on">Coins 1 · N coins make A</button><button disabled>Coins 2 · soon</button><button disabled>Coins 3 · soon</button></div>
+    <button class="gear" id="gear" data-act="settings">⚙ Settings</button>
+  </div>
+  <div class="bar" id="bar"></div>
+  <div class="main">
+    <div class="left">
+      <div class="card tt"><div class="tray" id="tray" style="margin:0 0 8px"></div><svg id="tt" viewBox="0 0 700 420"></svg></div>
+      <div id="predict"></div>
+      <div class="actions"><div class="status" id="status"></div><span id="actions" style="display:contents"></span></div>
+    </div>
+    <div class="right">
+      <div class="tabs" id="tabs"></div>
+      <div id="panels"></div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="js/core.js"></script>
+<script src="js/table.js"></script>
+<script src="js/views.js"></script>
+<script src="js/strategies.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
